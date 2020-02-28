@@ -21,28 +21,6 @@ vex::competition Competition;
 
 // define your global instances of motors and other devices here
 
-vex::motor DRIVE_RF = vex::motor(PORT1, true);
-vex::motor DRIVE_RB = vex::motor(PORT7, true);
-vex::motor DRIVE_LF = vex::motor(PORT2, false);
-vex::motor DRIVE_LB = vex::motor(PORT10, false);
-
-vex::motor RAMP = vex::motor(PORT19, false);
-
-vex::pwm_out Led1 = vex::pwm_out(Brain.ThreeWirePort.B);
-
-vex::encoder encoderL = vex::encoder(Brain.ThreeWirePort.F);
-vex::encoder encoderR = vex::encoder(Brain.ThreeWirePort.C);
-vex::encoder encoderB = vex::encoder(Brain.ThreeWirePort.D);
-
-vex::motor INTAKE_R = vex::motor(PORT6);
-vex::motor INTAKE_L = vex::motor(PORT8, true);
-
-vex::motor ARM = vex::motor(PORT9);
-
-vex::percentUnits;
-
-
-vex::controller controller1 = vex::controller();
 
 
 
@@ -208,10 +186,10 @@ if( pid_Ki != 0 )
 }
 
 void pidDrive(double dL, double dR, float speed1, float speed2){
-DRIVE_LB.resetRotation();
-DRIVE_RB.resetRotation();
-double distanceL = -((dL / 15) * 23);
-double distanceR = -((dR / 15) * 23);
+  DRIVE_LB.resetRotation();
+  DRIVE_RB.resetRotation();
+  double distanceL = -((dL / 15) * 23);
+  double distanceR = -((dR / 15) * 23);
 
   static float PID_INTEGRAL_LIMIT = 50;
   static int PID_DRIVE_MAX = 127;
@@ -234,10 +212,10 @@ double distanceR = -((dR / 15) * 23);
   float  pidDriveL;
   float  pidDriveR;
 
-pidLastErrorL  = 0;
-pidLastErrorR  = 0;
-pidIntegralL   = 0;
-pidIntegralR   = 0;
+  pidLastErrorL  = 0;
+  pidLastErrorR  = 0;
+  pidIntegralL   = 0;
+  pidIntegralR   = 0;
 
 
 while(fabs(pidErrorL) > 0.03 || fabs(pidErrorR) > 0.03 ){
@@ -246,7 +224,7 @@ while(fabs(pidErrorL) > 0.03 || fabs(pidErrorR) > 0.03 ){
     encoderValueL = -DRIVE_LB.rotation(vex::rotationUnits (rev));
     pidErrorL = encoderValueL - distanceL;
 
-  if( pid_Ki != 0 )
+    if( pid_Ki != 0 )
                 {
                 // If we are inside controlable window then integrate the error
                 if( fabs(pidErrorL) < PID_INTEGRAL_LIMIT)
@@ -306,22 +284,169 @@ while(fabs(pidErrorL) > 0.03 || fabs(pidErrorR) > 0.03 ){
             if( pidDriveR < PID_DRIVE_MIN )
                 pidDriveR = PID_DRIVE_MIN;
           
-           
-              
-              
-
-  }else{
-pidDriveR = 0;
-  }
+            }else{
+            pidDriveR = 0;
+          }
             // send to motor
             drive(pidDriveL * speed1, pidDriveR * speed2);
             }
 
 }
 
-void pidRamp(){
+void pidDrive2D(double d, double degree, double speed){
+
+    DRIVE_LB.resetRotation();
+    DRIVE_RB.resetRotation();
+
+  double distanceL = -d * (cos(degree / 180 * 3.14159265359) + sin(degree / 180 * 3.14159265359)) / 15 * 23;
+  double distanceR = -d * (cos(degree / 180 * 3.14159265359) - sin(degree / 180 * 3.14159265359)) / 15 * 23;
+
+  
+  
+
+
+
+  static float PID_INTEGRAL_LIMIT = 50;
+  static int PID_DRIVE_MAX = 127;
+  static int PID_DRIVE_MIN = -127;
+
+  float  encoderValueL = 0;
+  float  encoderValueR = 0;
+  float  pid_Kp = 2.0;
+  float  pid_Ki = 0.04;
+  float  pid_Kd = 0.0;
+
+  float  pidErrorL = 1000;
+  float  pidErrorR = 1000;
+  float  pidLastErrorL = 0;
+  float  pidLastErrorR = 0;
+  float  pidIntegralL = 0;
+  float  pidIntegralR = 0;
+  float  pidDerivativeL = 0;
+  float  pidDerivativeR = 0;
+  float  pidDriveL;
+  float  pidDriveR;
+
+  pidLastErrorL  = 0;
+  pidLastErrorR  = 0;
+  pidIntegralL   = 0;
+  pidIntegralR   = 0;
+
+
+while(fabs(pidErrorL) > 0.03 || fabs(pidErrorR) > 0.03 ){
+
+  if(fabs(pidErrorL) > 0.03){
+    encoderValueL = -DRIVE_LB.rotation(vex::rotationUnits (rev));
+    pidErrorL = encoderValueL - distanceL;
+
+    if( pid_Ki != 0 )
+                {
+                // If we are inside controlable window then integrate the error
+                if( fabs(pidErrorL) < PID_INTEGRAL_LIMIT)
+                    pidIntegralL = pidIntegralL + pidErrorL;
+                     else
+                    pidIntegralL = 0;
+                }
+            else
+                pidIntegralL = 0;
+            
+
+            // calculate the derivative
+            pidDerivativeL = pidErrorL - pidLastErrorL;
+            pidLastErrorL  = pidErrorL;
+            
+
+            // calculate drive
+            pidDriveL = (pid_Kp * pidErrorL) + (pid_Ki * pidIntegralL) + (pid_Kd * pidDerivativeL);
+            
+            // limit drive
+            if( pidDriveL > PID_DRIVE_MAX )
+                pidDriveL = PID_DRIVE_MAX;
+            if( pidDriveL < PID_DRIVE_MIN )
+                pidDriveL = PID_DRIVE_MIN;
+                         
+        }else{
+     pidDriveL = 0;
+        }
+
+  if(fabs(pidErrorR) > 0.03){
+
+    encoderValueR = -DRIVE_RB.rotation(vex::rotationUnits (rev));
+    pidErrorR = encoderValueR - distanceR;
+
+  if( pid_Ki != 0 )
+                {
+                // If we are inside controlable window then integrate the error     
+                if(fabs(pidErrorR) < PID_INTEGRAL_LIMIT)
+                    pidIntegralR = pidIntegralR + pidErrorR;
+                else
+                    pidIntegralR = 0;
+                }
+            else
+                pidIntegralR = 0;
+
+            // calculate the derivative
+            pidDerivativeR = pidErrorR - pidLastErrorR;
+            pidLastErrorR  = pidErrorR;
+
+
+            // calculate drive
+            pidDriveR = (pid_Kp * pidErrorR) + (pid_Ki * pidIntegralR) + (pid_Kd * pidDerivativeR);
+
+            // limit drive
+            if( pidDriveR > PID_DRIVE_MAX )
+                pidDriveR = PID_DRIVE_MAX;
+            if( pidDriveR < PID_DRIVE_MIN )
+                pidDriveR = PID_DRIVE_MIN;
+
+
+
+
+            }else{
+            pidDriveR = 0;
+          }
+            int speedL, speedR;
+                
+                
+              if(distanceL > -0.01 && distanceL < 0.01)
+                speedL = 0;
+              else if(fabs(distanceL) < fabs(distanceR))
+                speedL = pidDriveR * distanceL / distanceR;
+              else
+                speedL = pidDriveL;
+            
+            if(distanceR > -0.01 && distanceR < 0.01)
+              speedR = 0;
+            else if(fabs(distanceR) < fabs(distanceL))
+                speedR = pidDriveL * distanceR / distanceL;
+              else
+                speedR = pidDriveR;
+                
+
+            // send to motor         
+              
+            run(DRIVE_LB, speedL * speed );
+            run(DRIVE_RF, speedL * speed ); 
+
+            if( speedL > -2 && speedL < 2)
+            motorBrake(DRIVE_LB, DRIVE_RF);
+
+            run(DRIVE_LF, speedR * speed);
+            run(DRIVE_RB, speedR * speed);
+
+            if( speedR > -2 && speedR < 2)
+             motorBrake(DRIVE_LF,DRIVE_RB);
+            
+      
+
+            }
+  
+
+}
+
+int pidRamp(){
   RAMP.resetRotation();
-    double distance = -1.3;
+    double distance = -2.8;
 
   static float PID_INTEGRAL_LIMIT = 50;
   static int PID_DRIVE_MAX = 127;
@@ -338,18 +463,18 @@ void pidRamp(){
   float  pidDerivative = 0;
   float  pidDrive;
 
-pidLastError  = 0;
-pidIntegral   = 0;
+  pidLastError  = 0;
+  pidIntegral   = 0;
 
-while(fabs(pidError) > 0.03){
+  while(fabs(pidError) > 0.03){
 
-encoderValue = -RAMP.rotation(vex::rotationUnits (rev));
-
-
-pidError = encoderValue - distance;
+  encoderValue = -RAMP.rotation(vex::rotationUnits (rev));
 
 
-if( pid_Ki != 0 )
+  pidError = encoderValue - distance;
+
+
+  if( pid_Ki != 0 )
                 {
                 // If we are inside controlable window then integrate the error
                 if( fabs(pidError) < PID_INTEGRAL_LIMIT )
@@ -376,41 +501,32 @@ if( pid_Ki != 0 )
             // send to motor
             run(RAMP, pidDrive );
             }
-        sleep(750);
-}
+              RAMP.resetRotation();
+
+    distance = -1.5;
+
+    encoderValue = 0;
+    pid_Kp = 2.0;
+    pid_Ki = 0.04;
+    pid_Kd = 0.0;
+
+    pidError = 1000;
+    pidLastError = 0;
+    pidIntegral = 0;
+    pidDerivative = 0;
+
+  pidLastError  = 0;
+  pidIntegral   = 0;
+
+  while(fabs(pidError) > 0.03){
+
+  encoderValue = -RAMP.rotation(vex::rotationUnits (rev));
 
 
-void pidRamp2(){
-  RAMP.resetRotation();
-    double distance = -1;
-
-  static float PID_INTEGRAL_LIMIT = 50;
-  static int PID_DRIVE_MAX = 127;
-  static int PID_DRIVE_MIN = -127;
-
-  float  encoderValue = 0;
-  float  pid_Kp = 2.0;
-  float  pid_Ki = 0.04;
-  float  pid_Kd = 0.0;
-
-  float  pidError = 1000;
-  float  pidLastError = 0;
-  float  pidIntegral = 0;
-  float  pidDerivative = 0;
-  float  pidDrive;
-
-pidLastError  = 0;
-pidIntegral   = 0;
-
-while(fabs(pidError) > 0.03){
-
-encoderValue = -RAMP.rotation(vex::rotationUnits (rev));
+  pidError = encoderValue - distance;
 
 
-pidError = encoderValue - distance;
-
-
-if( pid_Ki != 0 )
+  if( pid_Ki != 0 )
                 {
                 // If we are inside controlable window then integrate the error
                 if( fabs(pidError) < PID_INTEGRAL_LIMIT )
@@ -438,7 +554,73 @@ if( pid_Ki != 0 )
             run(RAMP, pidDrive * 0.5 );
             }
         sleep(750);
+
+        RAMP.resetRotation();
+  
+        return 0;
 }
+
+
+void pidMotor(motor motor, double distance, double speed){
+  motor.resetRotation();
+
+
+  static float PID_INTEGRAL_LIMIT = 50;
+  static int PID_DRIVE_MAX = 127;
+  static int PID_DRIVE_MIN = -127;
+
+  float  encoderValue = 0;
+  float  pid_Kp = 2.0;
+  float  pid_Ki = 0.04;
+  float  pid_Kd = 0.0;
+
+  float  pidError = 1000;
+  float  pidLastError = 0;
+  float  pidIntegral = 0;
+  float  pidDerivative = 0;
+  float  pidDrive;
+
+  pidLastError  = 0;
+  pidIntegral   = 0;
+
+  while(fabs(pidError) > 0.03){
+
+  encoderValue = -motor.rotation(vex::rotationUnits (rev));
+
+
+  pidError = encoderValue - distance;
+
+
+  if( pid_Ki != 0 )
+                {
+                // If we are inside controlable window then integrate the error
+                if( fabs(pidError) < PID_INTEGRAL_LIMIT )
+                    pidIntegral = pidIntegral + pidError;
+                else
+                    pidIntegral = 0;
+                }
+            else
+                pidIntegral = 0;
+
+            // calculate the derivative
+            pidDerivative = pidError - pidLastError;
+            pidLastError  = pidError;
+
+            // calculate drive
+            pidDrive = (pid_Kp * pidError) + (pid_Ki * pidIntegral) + (pid_Kd * pidDerivative);
+
+            // limit drive
+            if( pidDrive > PID_DRIVE_MAX )
+                pidDrive = PID_DRIVE_MAX;
+            if( pidDrive < PID_DRIVE_MIN )
+                pidDrive = PID_DRIVE_MIN;
+
+            // send to motor
+            run(motor, pidDrive * speed);
+            }
+        sleep(750);
+}
+
 
 double encL(){
  return 0;
@@ -459,7 +641,7 @@ void pre_auton( void ) {
 
 std::string color;
 std::string side;
-
+/*
   Brain.Screen.drawImageFromFile( "Collingwood_Shield.png" , 0, 0);
 
 lcdButton test(50, 20, 40, 40, "asd", "FF2525","#FFFFFF", 3);
@@ -471,12 +653,12 @@ lcdButton redBack(50,190,120,40, "Red Tower", "#FF2525", "#FFFFFF", 2);//, color
 lcdButton blueFront(250,135,120,40, "Blue Run", "#2525FF", "#FFFFFF", 2); 
 lcdButton blueBack(250,190,120,40, "Blue Tower", "#2525FF", "#FFFFFF", 2);
 
-
+*/
 
 while(true){
 
 
- 
+/* 
 
 if(blueFront.pressing()){
 run(INTAKE_L, 50);
@@ -507,11 +689,32 @@ side = autoSide;
 
 test.setText(color);
 test2.setText(side);
-
+*/
 /*
 const char temp = INTAKE_L.temperature();
 Brain.Screen.printAt(200, 120, temp);
 */
+
+if(controller1.ButtonLeft.pressing()){
+autoColor = 1;
+autoSide = 1;
+}
+
+if(controller1.ButtonDown.pressing()){
+autoColor = 1;
+autoSide = -1;
+}
+
+if(controller1.ButtonLeft.pressing()){
+autoColor = -1;
+autoSide = 1;
+}
+
+if(controller1.ButtonRight.pressing()){
+autoColor = -1;
+autoSide = -1;
+}
+
 }
 
 
@@ -550,9 +753,11 @@ if(autoSide == 1){
 }
 
 */
-/*
+
+
+
 run(RAMP, 100);
-sleep(500);
+sleep(600);
 
 run(RAMP, 0);
 
@@ -564,70 +769,66 @@ run(INTAKE_L, INTAKE_R, 0);
 run(ARM, 200);
 sleep(800);
 run(ARM, -200);
-sleep(600);
+sleep(500);
+run(ARM, 0);
 
-run(RAMP, -100);
-sleep(300);
 run(RAMP, 0);
-
-
 
 
 drive(0, 0);
 
+
+
 run(INTAKE_L, INTAKE_R, -300);
-*/
-pidDrive(2.5, .6, .6);
+
+pidDrive(2, .8, .8);
 
 drive(0,0);
 
 sleep(100);
 
+pidDrive2D(2.4, 220, 3);
+
+//pidDrive(-3.2, -1.5, 3, .75);
 
 
-pidDrive(-3.25, -2.25, 3, 0.75);
-//pidDrive(2, 0.5, 1, 0.5);
-
-run(INTAKE_L, INTAKE_R, 0);
-
-drive(0,0);
-
-
-/*
-//THE TURNING PART
-pidDrive(-1.3, 1, -1);
-
+run(INTAKE_L, INTAKE_R, -300);
 
 drive(0,0);
 
-pidDrive(.5, 1, 1);
+//pidDrive(.7, -.7, 1, 1);
+drive(0, 0);
+sleep(250);
 
+
+
+pidDrive(2.1, 2.1, .9, .9);
 drive(0,0);
-
-run(INTAKE_L, INTAKE_R, 100);
-
-run(RAMP, 100);
-sleep(500);
-//run(INTAKE_L, INTAKE_R, 100);
-
-run(INTAKE_L, INTAKE_R, 0);
+sleep(250);
 
 
-sleep(2000);
-run(RAMP, 0);
+pidDrive(-1.25, 1.25, .5, .5);
+drive(0, 0);
 
-drive(-50, -50);
+sleep(300);
 
 run(INTAKE_L, INTAKE_R, 0);
-sleep(1000);
-*/
+
+pidDrive(2.58, 2.58, 1, 1);
+
+pidRamp();
+
+run(INTAKE_L, INTAKE_R, 30);
+
+pidDrive(-.5, -.5, .5, .5);
+
 run(DRIVE_RF, 0);
   run(DRIVE_LF, 0);
   run(DRIVE_LB, 0);
   run(DRIVE_RB, 0);
 
 
-
+drive(0, 0);
 }
 
 
@@ -637,9 +838,7 @@ run(DRIVE_RF, 0);
 void usercontrol( void ) {
 
    int count = 0;
-
-
-  while (1) {
+while (1) {
 
 
 Led1.state(100,vex::percentUnits::pct);
@@ -659,7 +858,7 @@ count++;
 */
 
 
-/*]
+/*
 controller1.Screen.clearScreen();
 controller1.Screen.setCursor(1,1);
 controller1.Screen.print(INTAKE_L.temperature(pct));
@@ -743,16 +942,15 @@ if(controller1.ButtonR1.pressing()){
 
 //---------------------------[Ramp Control]---------------------------
 
-if(controller1.ButtonX.pressing()){
-  pidRamp();
-  pidRamp2();
-}else if(controller1.ButtonB.pressing()){
+if(controller1.ButtonX.pressing())
+  vex::task ramp(pidRamp);
+else if(controller1.ButtonB.pressing())
   run(RAMP, -200);
-}else if(controller1.ButtonY.pressing()){
+else if(controller1.ButtonY.pressing())
   run(RAMP, 100);
-}else{
+else
   RAMP.stop(hold);
-}
+
 //---------------------------[Intake Control]---------------------------
 
 if(controller1.ButtonL1.pressing()){
@@ -774,27 +972,13 @@ if(controller1.ButtonL1.pressing()){
 //----------------------------------------------------[Alerting Systems]----------------------------------------------------
 
 //battery
-int batteryAlert(){
-    while(1){
-        if (Brain.Battery.capacity(percentUnits::pct) <= 20){
-            Brain.Screen.clearScreen(color::orange);
-            controller1.Screen.clearScreen();
-            vex::task::sleep(250);
-            Brain.Screen.printAt(90, 135, ">> RECHARGE BATTERY <<");
-            controller1.rumble("-");
-            controller1.Screen.setCursor(1, 7);
-            controller1.Screen.print("RECHARGE");
-            controller1.Screen.setCursor(2, 8);
-            controller1.Screen.print("BATTERY");
-            vex::task::sleep(500);
-        }
-    vex::task::sleep(500);
-    }
-}
+
 
 //intake
-int intakeTempAlert(){
+int Alert(){
+  int warning = 0;
     while(1){
+      
         if (INTAKE_L.temperature(pct) >= 70.00){ //psat 70 it can only pickup 5 and wont be able to stack alot
             Brain.Screen.clearScreen(color::red);
             controller1.Screen.clearScreen();
@@ -806,19 +990,52 @@ int intakeTempAlert(){
             controller1.Screen.setCursor(2, 8);
             controller1.Screen.print("MOTOR");
             vex::task::sleep(500);
+            
         }
-    vex::task::sleep(500);
+         if (Brain.Battery.capacity(percentUnits::pct) <= 20){
+            Brain.Screen.clearScreen(color::orange);
+            controller1.Screen.clearScreen();
+            vex::task::sleep(250);
+            Brain.Screen.printAt(90, 135, ">> RECHARGE BATTERY <<");
+  
+            controller1.Screen.setCursor(1, 7);
+            controller1.Screen.print("RECHARGE");
+            controller1.Screen.setCursor(2, 8);
+            controller1.Screen.print("BATTERY");
+            vex::task::sleep(500);
+            if(warning < 5)
+            controller1.rumble("-");
+            warning++;
+         }
+        
+  controller1.Screen.clearScreen();
+
+  controller1.Screen.setCursor(1,1);
+  controller1.Screen.print(INTAKE_L.temperature(pct));
+
+  controller1.Screen.setCursor(1,10);
+  controller1.Screen.print(INTAKE_R.temperature(pct));
+
+  controller1.Screen.setCursor(2, 1);
+  controller1.Screen.print("Battery Cap: %d%%", Brain.Battery.capacity());
+
+    vex::task::sleep(1000);
+    
     }
+
 }
+/*
+int rampControl(){
 
-
+}
+*/
 
 //----------------------------------------------------[INT MAIN]----------------------------------------------------
 int main() {
     //Set up callbacks for autonomous and driver control periods.
 
-    vex::task alert(batteryAlert);
-    vex::task alert1(intakeTempAlert);
+    vex::task alert(Alert);
+    //vex::task ramp(rampControl);
 
     Competition.autonomous( autonomous );
     Competition.drivercontrol( usercontrol );
